@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1"> 
-  <title>Class Attendance System</title>
+  <title>Little Garden Play School</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
   <div id="loginScreen" class="container">
-    <h1>Welcome!</h1>
+    <h1 class="hed1">Little Garden</h1>
+    <h1 style="font-weight: 800;">Play School</h1>
     <p id="loginMessage" style="text-align: center; color: #555;"></p>
     <input type="email" id="loginEmail" placeholder="Email" style="margin-bottom: 10px;">
     <input type="password" id="loginPassword" placeholder="Password" style="margin-bottom: 20px;">
@@ -19,13 +20,16 @@
   <div id="appScreen" class="container hidden">
 
     <div class="header-content">
-        <h1>Class Attendance System</h1>
+      <div class="title-group">
+            <span class="main-school-title">Little Garden Play School</span>
+            <span class="system-title" onclick="showAttendanceView()" style="cursor: pointer;">📘 Class Attendance System</span>
+        </div> 
         <button onclick="handleLogout()" id="logoutBtn">Logout</button>
     </div>
     <div id="attendanceTakingView">
       <div class="input-section">
-        <select id="classSelect" aria-label="Select Class"></select> 
-        <button onclick="loadClassStudents()">Load/Take Attendance</button>
+        <select id="classSelect" aria-label="Select Class"></select>
+        <button onclick="loadClassStudents()">Load Students</button>
         <button onclick="showStudentHistoryPrompt()">Student History</button>
         <button onclick="showReportView()">Monthly Report</button>
       </div>
@@ -69,4 +73,3 @@
 
 </body>
 </html>
-
