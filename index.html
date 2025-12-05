@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Class Attendance System</title>
+  <link rel="stylesheet" href="style.css">
+  
+  <style>
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="loginScreen" class="container">
+    <h1>🔑 Login to Attendance System</h1>
+    <input type="email" id="loginEmail" placeholder="Email" required>
+    <input type="password" id="loginPassword" placeholder="Password" required>
+    <button onclick="handleLogin()">Login</button>
+    <p id="loginMessage" style="color: red; margin-top: 10px;"></p>
+  </div>
+
+  <div id="appScreen" class="container hidden">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h1>📘 Class Attendance System</h1>
+      <button onclick="handleLogout()" style="background: #e74c3c;">🚪 Logout</button> 
+    </div>
+
+    <div class="input-section">
+      <select id="classSelect" aria-label="Select Class"></select>
+      <button onclick="loadClassStudents()">Load Students</button>
+      <button onclick="loadStudentData()">Student Data</button>
+    </div>
+
+    <table id="studentTable" class="hidden">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Attendance</th>
+          <th>Comment</th>
+        </tr>
+      </thead>
+      <tbody id="studentBody"></tbody>
+    </table>
+
+    <button id="saveBtn" class="hidden" onclick="saveAttendance()">💾 Save Attendance</button>
+  </div>
+
+  <div id="studentDataDisplay" class="container hidden"></div>
+
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="script.js"></script>
+
+</body>
+</html>
