@@ -2,55 +2,68 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1"> 
   <title>Class Attendance System</title>
   <link rel="stylesheet" href="style.css">
-  
-  <style>
-    .hidden {
-      display: none;
-    }
-  </style>
 </head>
 
 <body>
 
   <div id="loginScreen" class="container">
-    <h1>🔑 Login to Attendance System</h1>
-    <input type="email" id="loginEmail" placeholder="Email" required>
-    <input type="password" id="loginPassword" placeholder="Password" required>
+    <h1>Welcome!</h1>
+    <p id="loginMessage" style="text-align: center; color: #555;"></p>
+    <input type="email" id="loginEmail" placeholder="Email" style="margin-bottom: 10px;">
+    <input type="password" id="loginPassword" placeholder="Password" style="margin-bottom: 20px;">
     <button onclick="handleLogin()">Login</button>
-    <p id="loginMessage" style="color: red; margin-top: 10px;"></p>
   </div>
-
   <div id="appScreen" class="container hidden">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <h1>📘 Class Attendance System</h1>
-      <button onclick="handleLogout()" style="background: #e74c3c;">🚪 Logout</button> 
+
+    <div class="header-content">
+        <h1>📘 Class Attendance System</h1>
+        <button onclick="handleLogout()" id="logoutBtn">Logout</button>
     </div>
+    <div id="attendanceTakingView">
+      <div class="input-section">
+        <select id="classSelect" aria-label="Select Class"></select> 
+        <button onclick="loadClassStudents()">Load/Take Attendance</button>
+        <button onclick="showStudentHistoryPrompt()">Student History</button>
+        <button onclick="showReportView()">Monthly Report</button>
+      </div>
 
-    <div class="input-section">
-      <select id="classSelect" aria-label="Select Class"></select>
-      <button onclick="loadClassStudents()">Load Students</button>
-      <button onclick="loadStudentData()">Student Data</button>
+      <div id="studentTableContainer">
+        <table id="studentTable" class="hidden">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Attendance</th>
+              <th>Comment</th>
+            </tr>
+          </thead>
+          <tbody id="studentBody"></tbody>
+        </table>
+      </div>
+
+      <button id="saveBtn" class="hidden" onclick="saveAttendance()">💾 Save Attendance</button>
     </div>
-
-    <table id="studentTable" class="hidden">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Attendance</th>
-          <th>Comment</th>
-        </tr>
-      </thead>
-      <tbody id="studentBody"></tbody>
-    </table>
-
-    <button id="saveBtn" class="hidden" onclick="saveAttendance()">💾 Save Attendance</button>
+    
+    <div id="reportView" class="hidden">
+        <h2 id="reportHeader">📊 Monthly Attendance Report</h2>
+        <div class="input-section">
+            <select id="reportMonthSelect" aria-label="Select Month"></select>
+            <select id="reportYearSelect" aria-label="Select Year"></select>
+            <button onclick="generateMonthlyReport()">Generate Report</button>
+            <button onclick="exportMonthlyReportToCSV()">Export to CSV</button>
+        </div>
+        <div id="reportOutput" class="hidden">
+            <div id="monthlyReportTableContainer"></div>
+        </div>
+    </div>
+    
+    <div id="studentHistoryView" class="hidden">
+        </div>
+    
   </div>
-
-  <div id="studentDataDisplay" class="container hidden"></div>
-
   <script type="module" src="firebase.js"></script>
   <script type="module" src="script.js"></script>
 
