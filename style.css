@@ -1,90 +1,289 @@
+/* style.css - Updated for Professional, Mobile-Friendly, and Corner Logout Button */
+
+/* Global Reset/Base */
 body {
-  font-family: 'Poppins', sans-serif;
-  background: #eef2f7;
+  /* Modern font stack */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  background: #f4f7fa; /* Very light, soft background */
   margin: 0;
   padding: 0;
+  color: #333;
 }
 
 .container {
   max-width: 900px;
   margin: 40px auto;
   background: white;
-  padding: 25px;
-  border-radius: 16px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  padding: 30px; /* Increased padding */
+  border-radius: 12px; /* Softer border radius */
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08); /* Subtle, deeper shadow for lifted effect */
 }
 
+/* --- NEW HEADER FLEXBOX STRUCTURE --- */
+.header-content {
+    display: flex; /* Enable flexible layout */
+    justify-content: space-between; /* Push items to the far ends */
+    align-items: center; /* Vertically align items */
+    margin-bottom: 25px; /* Add some space below the header */
+}
+
+/* Headings and Titles */
 h1 {
-  text-align: center;
+  /* H1 is inside .header-content, so these styles apply there */
+  margin: 0; /* Remove default margin for clean alignment */
+  color: #1a4a75; /* Deep professional blue */
+  font-size: 28px;
+  font-weight: 700;
+  white-space: nowrap; /* Prevents wrapping */
+  overflow: hidden;
+  text-overflow: ellipsis; 
+}
+
+h2 {
+    color: #1a4a75;
+    margin-top: 15px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 5px;
+}
+
+/* Input & Controls */
+.input-section {
+  display: flex;
+  flex-wrap: wrap; 
+  gap: 15px;
+  align-items: center;
   margin-bottom: 20px;
 }
 
-.input-section {
-  display: flex;
-  gap: 10px;
-}
-
-input, button {
+input[type="email"], 
+input[type="password"], 
+input[type="text"], 
+select {
+  flex-grow: 1; 
   padding: 12px;
   font-size: 16px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
+  border-radius: 8px;
+  border: 1px solid #dcdfe6; 
+  transition: border-color 0.3s, box-shadow 0.3s;
+  background-color: #fcfcfc;
+}
+
+input:focus, select:focus {
+    border-color: #2d89ff;
+    box-shadow: 0 0 0 3px rgba(45, 137, 255, 0.2);
+    outline: none;
 }
 
 button {
+  padding: 12px 20px;
+  font-size: 16px;
+  border-radius: 8px;
   cursor: pointer;
-  background: #2d89ff;
+  background: #2d89ff; /* Primary Blue */
   color: white;
   border: none;
+  font-weight: 500;
+  transition: background-color 0.3s, transform 0.1s;
+  white-space: nowrap; 
 }
 
 button:hover {
-  opacity: 0.9;
+  background: #1a4a75; 
+  transform: translateY(-1px);
 }
 
+/* General Logout Button Styling */
+#logoutBtn {
+  background: #e74c3c; /* Red for danger/logout */
+}
+
+#logoutBtn:hover {
+  background: #c0392b;
+}
+
+/* Hiding element */
 .hidden {
   display: none;
 }
 
+/* Table Styling (Attendance & Report) */
 table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 100%; 
 }
 
 th, td {
-  padding: 12px;
-  border-bottom: 1px solid #ddd;
+  padding: 15px 12px; 
+  text-align: left;
 }
 
-.action-btn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+th {
+  background: #eff2ff; 
+  color: #1a4a75;
+  font-weight: 600;
+  border-bottom: 2px solid #ddd;
+  text-transform: uppercase;
+  font-size: 14px;
 }
 
-.present {
-  background: #2ecc71;
-  color: white;
+#studentTable tbody tr:nth-child(even),
+#monthlyReportTable tbody tr:nth-child(even) {
+    background-color: #f7f9fc; 
 }
 
-.absent {
-  background: #e74c3c;
-  color: white;
+#studentTable tbody tr:hover,
+#monthlyReportTable tbody tr:hover {
+    background-color: #eef2f7; 
 }
 
+td {
+    border-bottom: 1px solid #eee;
+    font-size: 15px;
+}
+
+/* Attendance Status Radio Buttons */
+td input[type="radio"] {
+    opacity: 0; 
+    position: absolute;
+}
+td label {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 16px; /* Pill shape */
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+    border: 1px solid #ddd;
+    color: #555;
+    margin-right: 5px; 
+    margin-bottom: 5px;
+}
+
+td input[type="radio"]:checked + label {
+    color: white;
+    border: none;
+}
+
+/* Attendance Colors */
+input[id^="present-"]:checked + label {
+    background: #2ecc71; 
+}
+input[id^="absent-"]:checked + label {
+    background: #e74c3c; 
+}
+
+/* Report Table Specifics */
+#monthlyReportTableContainer,
+#studentTableContainer { /* Apply horizontal scroll container to both tables */
+    overflow-x: auto; 
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+#monthlyReportTable {
+    min-width: 600px; /* Ensure report table scrolls if necessary */
+}
+
+#monthlyReportTable th, 
+#monthlyReportTable td {
+    padding: 10px 6px;
+    text-align: center;
+    min-width: 40px;
+    font-size: 13px; 
+}
+
+/* Student History View */
+#studentHistoryView hr {
+    border: 0;
+    border-top: 1px solid #eee;
+    margin: 15px 0;
+}
+
+/* Comment Box */
 .comment-box {
   width: 100%;
   padding: 6px;
   border-radius: 6px;
   border: 1px solid #ccc;
+  box-sizing: border-box; 
 }
 
-.history-record {
-  padding: 12px;
-  margin-top: 12px;
-  border-radius: 10px;
-  background: #f7f7f7;
-  border-left: 5px solid #2d89ff;
+/* ========================================================= */
+/* MOBILE RESPONSIVENESS (Max-width 768px for phones/tablets) */
+/* ========================================================= */
+@media (max-width: 768px) {
+    
+    .container {
+        margin: 15px;
+        padding: 20px;
+        box-shadow: none; 
+    }
+
+    /* --- LOGOUT BUTTON AND TITLE FIX --- */
+    /* Shrink the H1 on mobile */
+    .header-content h1 {
+        font-size: 20px; 
+        flex-shrink: 1; /* Allow the title to shrink if needed */
+    }
+    
+    /* Make the Logout button small and ensure it fits in the corner */
+    #logoutBtn {
+        width: auto; 
+        padding: 8px 12px; 
+        font-size: 10px;
+        flex-shrink: 0; /* Prevents the button from shrinking */
+        background-color: #ff5757a4;
+    }
+    /* ----------------------------------- */
+
+
+    /* Stack input section items on mobile */
+    .input-section {
+        flex-direction: column; 
+        gap: 10px;
+    }
+    
+    /* General button rule for mobile */
+    button {
+        width: 100%;
+    }
+    
+    /* Override the 100% width for the corner Logout button */
+    #logoutBtn {
+        width: auto;
+    }
+
+    /* Reduce table padding for better fit */
+    th, td {
+        padding: 10px 8px;
+        font-size: 14px;
+    }
+    
+    /* Wrap attendance status options to prevent overflow */
+    #studentTable td:nth-child(3) {
+        white-space: normal;
+    }
+
+    /* Reduce font size for labels to save space */
+    td label {
+        font-size: 12px;
+        padding: 5px 8px;
+    }
+
+    /* Ensure student history sections are compact */
+    #studentHistoryView > div {
+        padding: 10px;
+    }
+    
+    /* Ensure attendance table is scrollable horizontally */
+    #studentTable {
+        min-width: 500px; 
+    }
 }
