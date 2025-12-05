@@ -1,42 +1,108 @@
-/* style.css - Updated for Professional, Mobile-Friendly, and Corner Logout Button */
+/* style.css - Updated for Professional, Mobile-Friendly, Corner Logout Button, and Login Background */
 
 /* Global Reset/Base */
 body {
   /* Modern font stack */
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  background: #f4f7fa; /* Very light, soft background */
   margin: 0;
   padding: 0;
   color: #333;
+  
+  /* --- NEW BACKGROUND IMAGE STYLES --- */
+  background-image: url('bgimg.jpg'); /* Path to your background image */
+  
+  background-size: cover;        /* Ensures the image covers the entire screen */
+  background-position: center;   /* Centers the image */
+  background-repeat: no-repeat;  /* Prevents tiling */
+  background-attachment: fixed;  /* Keeps the background fixed */
+  background-color: #1a4a75;     /* Fallback color if image fails to load */
+  position: relative;
+}
+
+/* Optional: Add a subtle dark overlay over the background image for better contrast with text/containers */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.2); /* 20% transparent black overlay */
+    z-index: -1; /* Place behind all content */
 }
 
 .container {
-  max-width: 900px;
+  
+  max-width: 800px;
   margin: 40px auto;
-  background: white;
-  padding: 30px; /* Increased padding */
-  border-radius: 12px; /* Softer border radius */
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08); /* Subtle, deeper shadow for lifted effect */
+  padding: 40px 50px 50px 50px; 
+  border-radius: 20px; 
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
+
+/* --- Login Screen Container (Translucent) --- */
+#loginScreen.container {
+  padding: 40px 30px 50px 50px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.603); /* Translucent white to let background peek through */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    backdrop-filter: blur(10px);
+}
+
+/* --- Application Screen Container (Opaque) --- */
+#appScreen.container {
+    /* background: rgba(255, 255, 255, 0.573);  */
+    background: rgba(255, 255, 255, 0.603); /* Translucent white to let background peek through */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+    
+}
+
 
 /* --- NEW HEADER FLEXBOX STRUCTURE --- */
 .header-content {
+  
     display: flex; /* Enable flexible layout */
     justify-content: space-between; /* Push items to the far ends */
     align-items: center; /* Vertically align items */
     margin-bottom: 25px; /* Add some space below the header */
 }
+.hed1{
+  font-size: 35px;
+  font-weight: 800; /* Extra bold for prominence */
+}
+.title-group {
+    display: flex;
+    flex-wrap: wrap; /* Allows titles to wrap to a new line on small screens */
+    align-items: baseline;
+    gap: 10px; /* Space between the two titles */
+    max-width: 80%; /* Ensures the logout button has room on the right */
+}
+
+.main-school-title {
+    color: #1a4a75; 
+    font-size: 30px; 
+    font-weight: 800;
+}
+
+.system-title {
+    color: #2d89ff; /* Blue for the clickable system title */
+    font-size: 18px; 
+    font-weight: 500;
+    cursor: pointer;
+}
 
 /* Headings and Titles */
 h1 {
   /* H1 is inside .header-content, so these styles apply there */
-  margin: 0; /* Remove default margin for clean alignment */
+  margin: 0; 
   color: #1a4a75; /* Deep professional blue */
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
-  white-space: nowrap; /* Prevents wrapping */
+  white-space: nowrap; 
   overflow: hidden;
   text-overflow: ellipsis; 
+  cursor: pointer; /* To indicate it's clickable (for the 'Go Home' feature) */
 }
 
 h2 {
@@ -180,7 +246,7 @@ input[id^="absent-"]:checked + label {
 
 /* Report Table Specifics */
 #monthlyReportTableContainer,
-#studentTableContainer { /* Apply horizontal scroll container to both tables */
+#studentTableContainer { 
     overflow-x: auto; 
     border: 1px solid #ddd;
     border-radius: 8px;
@@ -188,7 +254,7 @@ input[id^="absent-"]:checked + label {
 }
 
 #monthlyReportTable {
-    min-width: 600px; /* Ensure report table scrolls if necessary */
+    min-width: 600px; 
 }
 
 #monthlyReportTable th, 
@@ -219,6 +285,11 @@ input[id^="absent-"]:checked + label {
 /* MOBILE RESPONSIVENESS (Max-width 768px for phones/tablets) */
 /* ========================================================= */
 @media (max-width: 768px) {
+  body {
+        /* This overrides 'center' with 'left top' only on mobile */
+        background-position: left top; 
+        /* You might also want to change background-size if the image is too zoomed in, e.g., to 'contain' or 'auto 100vh' */
+    }
     
     .container {
         margin: 15px;
@@ -227,18 +298,16 @@ input[id^="absent-"]:checked + label {
     }
 
     /* --- LOGOUT BUTTON AND TITLE FIX --- */
-    /* Shrink the H1 on mobile */
     .header-content h1 {
         font-size: 20px; 
-        flex-shrink: 1; /* Allow the title to shrink if needed */
+        flex-shrink: 1; 
     }
     
-    /* Make the Logout button small and ensure it fits in the corner */
     #logoutBtn {
         width: auto; 
         padding: 8px 12px; 
         font-size: 10px;
-        flex-shrink: 0; /* Prevents the button from shrinking */
+        flex-shrink: 0; 
         background-color: #ff5757a4;
     }
     /* ----------------------------------- */
