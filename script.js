@@ -231,7 +231,7 @@ function populateClassDropdown() {
     "First", "Second", "Third", "Fourth"
   ];
 
-  select.innerHTML = '<option value="" selected disabled>-- Select Class --</option>';
+  select.innerHTML = '<option value="" selected disabled>-- 𝑠𝑒𝑙𝑒𝑐𝑡 𝑐𝑙𝑎𝑠𝑠 --</option>';
 
   classOrder.forEach(className => {
     const option = document.createElement('option');
@@ -351,8 +351,8 @@ function populateMonthYearDropdowns() {
     
     if (!monthSelect || !yearSelect) return;
 
-    monthSelect.innerHTML = '<option value="" selected disabled>-- Select Month --</option>';
-    yearSelect.innerHTML = '<option value="" selected disabled>-- Select Year --</option>';
+    monthSelect.innerHTML = '<option value="" selected disabled>-- 𝑠𝑒𝑙𝑒𝑐𝑡 𝑚𝑜𝑛𝑡ℎ --</option>';
+    yearSelect.innerHTML = '<option value="" selected disabled>-- 𝑠𝑒𝑙𝑒𝑐𝑡 𝑦𝑒𝑎𝑟 --</option>';
 
     const months = [
         { name: "January", val: "1" }, { name: "February", val: "2" }, { name: "March", val: "3" },
