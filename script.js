@@ -15,7 +15,7 @@ import {
     signInWithEmailAndPassword,
     signOut,
     onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"; 
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"; // IMPORTING AUTH MODULES
 
 let attendanceData = {};
 let students = [];
@@ -119,11 +119,12 @@ function updateUI(role) {
           .then(data => {
             students = data;
             populateClassDropdown();
+            populateReportMonthYear(); // Initialize report dropdowns
           })
           .catch(err => console.error("Error loading student data:", err));
     } else {
         // User is logged out
-        if (loginScreen) loginScreen.classList.remove("hidden");
+        if (loginScreen) loginScreen.classList.add("hidden");
         if (appScreen) appScreen.classList.add("hidden");
         manageViews(null); // Clear all views
     }
@@ -172,266 +173,308 @@ window.handleLogin = async function () {
  */
 window.handleLogout = function () {
     signOut(auth).then(() => {
-        // Sign-out successful.
         currentUserRole = null;
-        updateUI(null);
-        alert("Logged out successfully!");
+        // updateUI will be called by the onAuthStateChanged listener
     }).catch((error) => {
-        console.error("Logout Error:", error);
-        alert("Logout failed. Please try again.");
+        alert("Logout failed: " + error.message);
     });
 };
 
 /**
- * Listener for authentication state changes (handles automatic login/logout UI).
+ * Checks the user's role in the Firestore database.
  */
-onAuthStateChanged(auth, async (user) => {
-    if (user) {
-        // User is signed in. Fetch role.
-        try {
-            const userRef = doc(db, "users", user.uid);
-            const userSnap = await getDoc(userRef);
-            if (userSnap.exists()) {
-                currentUserRole = userSnap.data().role;
-            } else {
-                currentUserRole = 'basic'; // Default role if not set
-            }
-        } catch (error) {
-            console.error("Error fetching user role:", error);
-            currentUserRole = 'basic';
-        }
-        updateUI(currentUserRole);
-    } else {
-        // User is signed out.
+async function checkUserRole(user) {
+    if (!user) {
         currentUserRole = null;
         updateUI(null);
+        return;
     }
+
+    try {
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+        
+        if (userDoc.exists() && userDoc.data().role) {
+            currentUserRole = userDoc.data().role;
+            console.log(`User logged in with role: ${currentUserRole}`);
+            updateUI(currentUserRole);
+        } else {
+            // Handle unauthorized user: log them out and show login screen
+            console.warn("User account found but role is missing or unauthorized.");
+            alert("Your account is not authorized. Logging out.");
+            await signOut(auth);
+        }
+    } catch (error) {
+        console.error("Error fetching user role:", error);
+        alert("An error occurred while checking permissions. Logging out.");
+        await signOut(auth);
+    }
+}
+
+// Initializer: Checks login status and sets up listener
+onAuthStateChanged(auth, (user) => {
+    checkUserRole(user);
 });
 
-// --- CLASS AND STUDENT LOGIC ---
 
-/**
- * Populates the class dropdown based on the unique classes found in the student data.
- * The class order is fixed for logical presentation.
- */
+// -----------------------------------------------------------------
+// --- APPLICATION LOGIC (Attendance, History, Report) ---
+// -----------------------------------------------------------------
+
+
+// --- Populate the class dropdown ---
 function populateClassDropdown() {
   const select = document.getElementById("classSelect");
   if (!select) return;
 
-  // Define the fixed order of classes based on your student data
   const classOrder = [
     "Nursery", "Lkg", "Lkg - A", "Lkg - B", "Ukg",
     "First", "Second", "Third", "Fourth"
   ];
 
   select.innerHTML = '<option value="" selected disabled>-- Select Class --</option>';
+
   classOrder.forEach(className => {
     const option = document.createElement('option');
-    option.value = className;
-    option.textContent = className;
+    option.value = className; 
+    option.textContent = className; 
     select.appendChild(option);
   });
 }
 
-// --- Load Class Students ---
+// --- Load Class Students for Attendance Taking ---
 window.loadClassStudents = function () {
-    if (!currentUserRole) return alert("Please log in first.");
-    const classSelect = document.getElementById("classSelect");
-    const selectedClass = classSelect.value;
-    if (!selectedClass) return alert("Please select a class");
+  if (!currentUserRole) return alert("Please log in first.");
+  
+  const classSelect = document.getElementById("classSelect");
+  const selectedClass = classSelect.value;
+  
+  if (!selectedClass) return alert("Please select a class");
+  
+  currentClass = selectedClass;
+  
+  const classStudents = students.filter(s => s.class === currentClass);
+  
+  if (classStudents.length === 0) return alert(`No students found for class: ${currentClass}`);
+  
+  // Switch to the attendance view
+  manageViews('attendance');
+  
+  const tbody = document.getElementById("studentBody");
+  tbody.innerHTML = "";
+  attendanceData = {}; // Clear previous data
+  
+  // Set the current date in the correct format for saving
+  const todayStandard = getStandardDate();
+
+  classStudents.forEach(stu => {
+    // Check if student ID is an integer for safer comparison later
+    const studentId = parseInt(stu.id);
+
+    attendanceData[studentId] = {
+      studentId: studentId,
+      name: stu.name,
+      status: "Present", // Default status
+      comment: "",
+      class: currentClass,
+      date: todayStandard // Save date in standard format
+    };
     
-    currentClass = selectedClass;
-    const classStudents = students.filter(s => s.class === currentClass);
-    if (classStudents.length === 0) return alert(`No students found for class: ${currentClass}`);
-    
-    manageViews('attendance');
-    
-    const tbody = document.getElementById("studentBody");
-    tbody.innerHTML = "";
-    attendanceData = {};
-    
-    classStudents.forEach(stu => {
-        attendanceData[stu.id] = {
-            studentId: stu.id,
-            name: stu.name, // Store name in attendance data for history
-            status: "Present",
-            comment: "",
-            class: currentClass
-        };
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${stu.id}</td>
-            <td>${stu.name}</td>
-            <td>
-                <input type="radio" id="present-${stu.id}" name="status-${stu.id}" value="Present" checked onclick="updateStatus(${stu.id}, 'Present')">
-                <label for="present-${stu.id}">Present</label>
-                <input type="radio" id="absent-${stu.id}" name="status-${stu.id}" value="Absent" onclick="updateStatus(${stu.id}, 'Absent')">
-                <label for="absent-${stu.id}">Absent</label>
-            </td>
-            <td>
-                <input type="text" id="comment-${stu.id}" class="comment-box" oninput="updateComment(${stu.id})" placeholder="Optional comment..." disabled>
-            </td>
-        `;
-        tbody.appendChild(row);
-    });
-    
-    document.getElementById("studentTable").classList.remove("hidden");
-    document.getElementById("saveBtn").classList.remove("hidden");
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${studentId}</td>
+      <td>${stu.name}</td>
+      <td>
+        <input type="radio" id="present-${studentId}" name="status-${studentId}" value="Present" checked onclick="updateStatus(${studentId}, 'Present')">
+        <label for="present-${studentId}">Present</label>
+        <input type="radio" id="absent-${studentId}" name="status-${studentId}" value="Absent" onclick="updateStatus(${studentId}, 'Absent')">
+        <label for="absent-${studentId}">Absent</label>
+      </td>
+      <td>
+        <input type="text" id="comment-${studentId}" placeholder="Comment" oninput="updateComment(${studentId})" disabled>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+  
+  // Show table and save button
+  document.getElementById("studentTable").classList.remove("hidden");
+  document.getElementById("saveBtn").classList.remove("hidden");
 };
 
 
-// --- ATTENDANCE INPUT HANDLERS ---
+// --- UPDATE STATUS AND COMMENT ---
+
 window.updateStatus = function (id, status) {
-    attendanceData[id].status = status;
-    const commentInput = document.getElementById(`comment-${id}`);
-    
-    if (status === "Absent") {
-        commentInput.disabled = false;
-    } else {
-        commentInput.disabled = true;
-        attendanceData[id].comment = "";
-        commentInput.value = ""; // Clear comment when switching back to Present
-    }
+  const commentInput = document.getElementById(`comment-${id}`);
+  
+  attendanceData[id].status = status;
+  
+  if (status === "Absent") {
+    // Only enable comment for Absent
+    commentInput.disabled = false;
+  } else {
+    // Disable and clear comment for Present
+    commentInput.value = "";
+    commentInput.disabled = true;
+    attendanceData[id].comment = "";
+  }
 };
 
 window.updateComment = function (id) {
-    // Only update comment if status is Absent, though it should only be enabled then.
-    if (attendanceData[id].status === "Absent") {
-        attendanceData[id].comment = document.getElementById(`comment-${id}`).value;
-    }
+  // Only update comment if the student is marked as Absent
+  if (attendanceData[id].status === "Absent") {
+    attendanceData[id].comment = document.getElementById(`comment-${id}`).value;
+  }
 };
-
 
 // --- SAVE TO FIRESTORE ---
 window.saveAttendance = async function () {
-    if (!currentClass) return alert("Please load a class first.");
-    const today = getStandardDate(); // Use standard YYYY-MM-DD format for key
-    const recordsToSave = Object.values(attendanceData);
+  if (!currentClass) return alert("Please load a class first.");
+  
+  const saveBtn = document.getElementById("saveBtn");
+  saveBtn.textContent = "Saving...";
+  saveBtn.disabled = true;
+  
+  // Use the standard date format (YYYY-MM-DD) for consistency
+  const todayStandard = getStandardDate();
+
+  try {
+    const savePromises = Object.keys(attendanceData).map(id => {
+      const record = attendanceData[id];
+      // The Firestore document ID is a combination of studentId and date
+      const docId = `${record.studentId}_${todayStandard}`; 
+      return setDoc(doc(db, "attendance", docId), record);
+    });
     
-    if (recordsToSave.length === 0) return alert("No student data to save.");
-
-    try {
-        for (const record of recordsToSave) {
-            // Document ID structure: [studentId]_[YYYY-MM-DD]
-            const docId = `${record.studentId}_${today}`; 
-            
-            // Add or overwrite the date field with the standard date format
-            record.date = today;
-
-            // Use setDoc to overwrite or create the document
-            await setDoc(doc(db, "attendance", docId), record);
-        }
-
-        alert("Attendance Saved Online Successfully!");
-    } catch (error) {
-        console.error("Error saving attendance:", error);
-        alert("Failed to save attendance. Check console for details.");
-    }
+    await Promise.all(savePromises);
+    
+    alert(`Attendance for ${currentClass} on ${todayStandard} saved successfully!`);
+  } catch (error) {
+    console.error("Error saving attendance:", error);
+    alert("Failed to save attendance. Check the console for details.");
+  } finally {
+    saveBtn.textContent = "💾 Save Attendance";
+    saveBtn.disabled = false;
+  }
 };
 
 
-// --- STUDENT HISTORY LOGIC ---
+// --- LOAD STUDENT HISTORY (must be window-attached) ---
 
 /**
- * Helper function to find student object by ID from the local students array.
- */
-function getStudentInfo(id) {
-    const studentId = parseInt(id);
-    // Find the student in the locally loaded array
-    return students.find(s => s.id === studentId);
-}
-
-/**
- * Prompts user for Student ID and validates it before loading history.
+ * Prompts the user for a Student ID and then loads the history.
  */
 window.showStudentHistoryPrompt = function() {
-    if (!currentUserRole) return alert("Please log in to view student history.");
-    const id = prompt("Enter Student ID:");
-    if (!id) return;
-    
-    const student = getStudentInfo(id);
-
-    if (!student) {
-        return alert(`Student with ID ${id} not found in local records. Please check the ID.`);
-    }
-
-    manageViews('history');
-    // Call the dedicated function to fetch and display the history
-    loadStudentHistory(id, student.name); 
-};
-
-
-/**
- * Fetches and displays the attendance history for a specific student.
- */
-async function loadStudentHistory(id, name) {
-    const historyDiv = document.getElementById("studentHistoryView");
-    if (!historyDiv) return;
-
-    // Display student name in the initial loading message and the final heading
-    historyDiv.innerHTML = `<p>Loading history for ${name} (ID: ${id})...</p>`;
-
-    try {
-        // FIX: The where clause operator was incorrectly set to "==...". Corrected to "==".
-        const q = query(collection(db, "attendance"), where("studentId", "==", parseInt(id))); 
-        const results = await getDocs(q);
-
-        // UPDATE: Use the student name in the main heading
-        historyDiv.innerHTML = `<h2>Attendance History for ${name} (ID: ${id})</h2>`;
-
-        if (results.empty) {
-          historyDiv.innerHTML += `<p>No attendance records found.</p>`;
-          return;
-        }
-
-        results.forEach(docSnap => {
-          const rec = docSnap.data();
-          
-          // Use rec.date if available, otherwise show N/A
-          const displayDate = rec.date || 'N/A (Old Format)';
-
-          const block = document.createElement('div');
-          block.innerHTML = `
-            <p><strong>Date:</strong> ${displayDate}</p>
-            <p><strong>Class:</strong> ${rec.class || 'N/A'}</p>
-            <p><strong>Status:</strong> <span style="font-weight: bold; color: ${rec.status === 'Present' ? '#2ecc71' : '#e74c3c'};">${rec.status}</span></p>
-            ${rec.comment ? `<p><strong>Comment:</strong> ${rec.comment}</p>` : ''}
-            <hr>
-          `;
-          historyDiv.appendChild(block);
-        });
-    } catch (error) {
-        console.error("Error loading student history:", error);
-        // The error message for the user should now display the student name as well
-        historyDiv.innerHTML = `<h2>Error Loading History</h2><p>Failed to load attendance records for ${name} (ID: ${id}). Please check your connection and console.</p>`;
-    }
+  if (!currentUserRole) return alert("Please log in to view student history.");
+  
+  // Hide all other views
+  manageViews('history');
+  
+  const id = prompt("Enter Student ID:");
+  if (!id) return;
+  
+  loadStudentData(id);
 }
 
+/**
+ * Fetches and displays a student's attendance history.
+ */
+async function loadStudentData(id) {
+  const historyDiv = document.getElementById("studentHistoryView");
+  if (!historyDiv) return;
+  historyDiv.innerHTML = `<p>Loading history for ID: ${id}...</p>`;
 
-// --- REPORT GENERATION LOGIC ---
+  try {
+      // Note: Firebase `where` clause comparison should match the data type in Firestore (string vs number)
+      // Since student IDs are integers, we convert the prompt input to an integer.
+      const studentIdInt = parseInt(id);
+      if (isNaN(studentIdInt)) {
+        historyDiv.innerHTML = `<h2>Attendance History for ID: ${id}</h2><p>Invalid Student ID format.</p>`;
+        return;
+      }
+      
+      const q = query(collection(db, "attendance"), where("studentId", "==", studentIdInt)); 
+      const results = await getDocs(q);
+
+      historyDiv.innerHTML = `<h2>Attendance History for ID: ${id}</h2>`;
+
+      if (results.empty) {
+        historyDiv.innerHTML += `<p>No attendance records found.</p>`;
+        return;
+      }
+      
+      let htmlContent = '<div class="history-list">';
+      
+      results.forEach(docSnap => {
+        const rec = docSnap.data();
+        
+        // Use the standard date format, or fall back for old data
+        const displayDate = rec.date || 'N/A (Old Format)';
+
+        htmlContent += `
+          <div class="history-record">
+            <p><strong>Date:</strong> ${displayDate}</p>
+            <p><strong>Class:</strong> ${rec.class || 'N/A'}</p>
+            <p><strong>Status:</strong> <span class="status-${rec.status.toLowerCase()}">${rec.status}</span></p>
+            ${rec.comment ? `<p><strong>Comment:</strong> ${rec.comment}</p>` : ''}
+          </div>
+        `;
+      });
+      
+      htmlContent += '</div>';
+      historyDiv.appendChild(historyDiv.firstChild); // Keep the header
+      historyDiv.innerHTML += htmlContent;
+
+  } catch (error) {
+      console.error("Error fetching student history:", error);
+      historyDiv.innerHTML = `<h2>Attendance History for ID: ${id}</h2><p>An error occurred while loading history.</p>`;
+  }
+}
+
+// --- MONTHLY REPORT FUNCTIONS ---
 
 /**
- * Populates month and year dropdowns for the report view.
+ * Shows the report view, ensuring a class is selected first.
+ * MODIFIED to remove dependency on loadClassStudents() being called first.
  */
 window.showReportView = function() {
-    if (!currentUserRole) return alert("Please log in first.");
-    manageViews('report');
+    if (!currentUserRole) return alert("Please log in to view reports.");
     
-    // Check if dropdowns are already populated to prevent duplicates
-    const monthSelect = document.getElementById("reportMonthSelect");
-    if (monthSelect.options.length > 1) return; 
+    const classSelect = document.getElementById("classSelect");
+    
+    // Check if a class is selected in the main dropdown
+    if (!classSelect || !classSelect.value) {
+      // Direct message to user about the class selection
+      return alert("Please select a class from the main dropdown before generating a report.");
+    }
 
+    // Set the currentClass based on the selected value, allowing report generation to proceed.
+    currentClass = classSelect.value;
+
+    manageViews('report');
+}
+
+/**
+ * Populates the month and year dropdowns for the report view.
+ */
+function populateReportMonthYear() {
+    const monthSelect = document.getElementById("reportMonthSelect");
     const yearSelect = document.getElementById("reportYearSelect");
     
+    if (!monthSelect || !yearSelect) return;
+
     // Clear previous options
     monthSelect.innerHTML = '<option value="" selected disabled>-- Select Month --</option>';
     yearSelect.innerHTML = '<option value="" selected disabled>-- Select Year --</option>';
-
-    const months = [ 
-        { name: "January", val: "1" }, { name: "February", val: "2" }, { name: "March", val: "3" }, 
-        { name: "April", val: "4" }, { name: "May", val: "5" }, { name: "June", val: "6" }, 
-        { name: "July", val: "7" }, { name: "August", val: "8" }, { name: "September", val: "9" }, 
-        { name: "October", val: "10" }, { name: "November", val: "11" }, { name: "December", val: "12" } 
+    
+    const months = [
+        { name: "January", val: "1" }, { name: "February", val: "2" }, 
+        { name: "March", val: "3" }, { name: "April", val: "4" }, 
+        { name: "May", val: "5" }, { name: "June", val: "6" }, 
+        { name: "July", val: "7" }, { name: "August", val: "8" }, 
+        { name: "September", val: "9" }, { name: "October", val: "10" }, 
+        { name: "November", val: "11" }, { name: "December", val: "12" }
     ];
 
     months.forEach(m => {
@@ -451,221 +494,206 @@ window.showReportView = function() {
 }
 
 
-/**
- * Generates and displays the monthly attendance report.
- */
+// --- GENERATE MONTHLY REPORT (with Debugging) ---
+
 window.generateMonthlyReport = async function() {
     if (!currentUserRole) return alert("Please log in first.");
+    
     const monthSelect = document.getElementById("reportMonthSelect");
     const yearSelect = document.getElementById("reportYearSelect");
     const outputDiv = document.getElementById("reportOutput");
+    const tableContainer = document.getElementById("monthlyReportTableContainer");
 
     const selectedMonth = monthSelect.value;
     const selectedYear = yearSelect.value;
-    
-    if (!selectedMonth || !selectedYear) {
-        outputDiv.innerHTML = `<p style="color: #e74c3c;">Please select both a month and a year.</p>`;
-        outputDiv.classList.remove("hidden");
-        return;
+    // Uses currentClass, which is now set in showReportView()
+    const selectedClass = currentClass; 
+
+    if (!selectedClass || !selectedMonth || !selectedYear) {
+        return alert("Please select a Class, Month, and Year.");
     }
-
-    outputDiv.innerHTML = `<p>Generating report for ${monthSelect.options[monthSelect.selectedIndex].text}, ${selectedYear}...</p>`;
+    
     outputDiv.classList.remove("hidden");
+    tableContainer.innerHTML = `<p>Loading data for ${selectedClass} / ${monthSelect.options[monthSelect.selectedIndex].text} ${selectedYear}...</p>`;
 
+    console.log("--- Report Generation Debug ---");
+    console.log(`Requested Class: ${selectedClass}`);
+    console.log(`Requested Month: ${selectedMonth.padStart(2, '0')}`);
+    console.log(`Requested Year: ${selectedYear}`);
+    
     try {
-        // Construct the month prefix for filtering (e.g., "2025-07")
-        const monthPrefix = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
-
-        // Fetch all attendance records
-        const attendanceRef = collection(db, "attendance");
-        const snapshot = await getDocs(attendanceRef);
+        // 1. Fetch all attendance records
+        const qAll = collection(db, "attendance");
+        const allRecordsSnapshot = await getDocs(qAll);
         
         let allRecords = [];
-        snapshot.forEach(docSnap => {
-            allRecords.push(docSnap.data());
+        allRecordsSnapshot.forEach(doc => {
+            allRecords.push(doc.data());
         });
         
-        // 1. Filter records by month/year
-        const filteredRecords = allRecords.filter(record => 
-            record.date && record.date.startsWith(monthPrefix)
-        );
+        console.log(`Total attendance records fetched: ${allRecords.length}`);
+
+        // 2. Filter records by Class, Month, and Year
+        const filteredRecords = allRecords.filter(record => {
+            if (!record.date || !record.class) {
+                return false; // Skip records without date or class
+            }
+            // Date format is YYYY-MM-DD
+            const { year, month } = getNumericDateParts(record.date);
+            
+            // Note: selectedMonth is a string like "1", "2", etc. The parsed month is also a string like "1", "2".
+            return record.class === selectedClass && 
+                   month === selectedMonth && 
+                   year === selectedYear;
+        });
+        
+        console.log(`Records filtered for class/month/year: ${filteredRecords.length}`);
 
         if (filteredRecords.length === 0) {
-            outputDiv.innerHTML = `<p style="color: #e74c3c;">No attendance records found for ${monthSelect.options[monthSelect.selectedIndex].text}, ${selectedYear}.</p>`;
+            tableContainer.innerHTML = `<h3>No Attendance Data Found</h3><p>No records found for ${selectedClass} in ${monthSelect.options[monthSelect.selectedIndex].text} ${selectedYear}.</p>`;
+            monthlyReportData = null; // Clear old data
             return;
         }
 
-        // 2. Group records by class
-        const classRecords = filteredRecords.reduce((acc, record) => {
-            if (!acc[record.class]) {
-                acc[record.class] = [];
-            }
-            acc[record.class].push(record);
+        // 3. Structure the data by Student and Date
+        const classStudents = students.filter(s => s.class === selectedClass);
+        
+        // Map to hold student data for the report
+        const studentMap = classStudents.reduce((acc, student) => {
+            acc[student.id] = { id: student.id, name: student.name, records: {} };
             return acc;
         }, {});
-        
-        // Clear previous report
-        const monthlyReportTableContainer = document.getElementById("monthlyReportTableContainer");
-        monthlyReportTableContainer.innerHTML = '';
-        
-        let allClassData = [];
-        
-        // 3. Process each class
-        for (const [className, records] of Object.entries(classRecords)) {
-            // Get all students for this class from the local students list
-            const classStudents = students.filter(s => s.class === className);
 
-            // Structure data for reporting
-            const studentMap = classStudents.reduce((acc, student) => {
-                acc[student.id] = { 
-                    id: student.id, 
-                    name: student.name, 
-                    records: {}, 
-                    totalP: 0, 
-                    totalA: 0 
-                };
-                return acc;
-            }, {});
+        // Set to collect all unique days attended in the month
+        const dates = new Set(); 
+        
+        filteredRecords.forEach(record => {
+            const studentId = record.studentId;
+            if (studentMap[studentId]) {
+                const dayOfMonth = getNumericDateParts(record.date).day; // e.g., "05"
+                // Store status and comment for that day
+                studentMap[studentId].records[dayOfMonth] = { status: record.status, comment: record.comment };
+                dates.add(parseInt(dayOfMonth, 10)); // Use integer for sorting
+            }
+        });
+        
+        // Sort dates numerically
+        const sortedDates = Array.from(dates).sort((a, b) => a - b); 
 
-            const dates = new Set();
-            records.forEach(record => {
-                const studentId = record.studentId;
-                if (studentMap[studentId]) {
-                    const dayOfMonth = getNumericDateParts(record.date).day;
-                    studentMap[studentId].records[dayOfMonth] = { 
-                        status: record.status, 
-                        comment: record.comment 
-                    };
-                    dates.add(parseInt(dayOfMonth, 10));
-                    
+        // 4. Build the HTML Table and CSV Data
+        
+        let tableHTML = `
+            <h3>Attendance Report: ${selectedClass} - ${monthSelect.options[monthSelect.selectedIndex].text} ${selectedYear}</h3>
+            <div class="table-scroll">
+            <table id="monthlyReportTable">
+            <thead><tr><th>ID</th><th>Name</th>
+        `;
+        
+        // Add date headers
+        sortedDates.forEach(day => {
+            tableHTML += `<th>${day}</th>`;
+        });
+        
+        tableHTML += '<th>Total P</th><th>Total A</th><th>% Att</th></tr></thead><tbody>';
+
+        // Prepare data for CSV export
+        const reportDataForExport = [];
+        reportDataForExport.push(["ID", "Name", ...sortedDates.map(d => `Day ${d}`), "Total Present", "Total Absent", "Attendance %"]);
+
+        classStudents.forEach(stu => {
+            const studentId = stu.id;
+            const studentEntry = studentMap[studentId];
+            
+            let totalPresent = 0;
+            let totalAbsent = 0;
+            let rowHTML = `<tr><td>${studentId}</td><td>${stu.name}</td>`;
+            
+            const studentDataForExport = [studentId, stu.name];
+
+            sortedDates.forEach(dayInt => {
+                const dayString = String(dayInt).padStart(2, '0'); // Pad back to "05" for lookup
+                const record = studentEntry.records[dayString];
+                
+                let statusChar = '';
+                let cellClass = '';
+                
+                if (record) {
                     if (record.status === 'Present') {
-                        studentMap[studentId].totalP++;
+                        statusChar = 'P';
+                        cellClass = 'status-present';
+                        totalPresent++;
                     } else if (record.status === 'Absent') {
-                        studentMap[studentId].totalA++;
+                        statusChar = 'A';
+                        cellClass = 'status-absent';
+                        totalAbsent++;
                     }
+                    studentDataForExport.push(statusChar);
+                } else {
+                    // Not recorded on this day, treat as N/A for this report
+                    statusChar = '-';
+                    cellClass = 'status-not-recorded';
+                    studentDataForExport.push('N/A'); // Use N/A for CSV if no record exists
                 }
-            });
 
-            const sortedDates = Array.from(dates).sort((a, b) => a - b);
-            
-            // If no dates were recorded for this class, skip it (shouldn't happen if filteredRecords isn't empty, but good defensive programming)
-            if (sortedDates.length === 0) continue; 
-            
-            // 4. Build the HTML Table and CSV Data
-            let tableHTML = `
-                <h3 style="color: #1a4a75; margin-top: 30px;">Class: ${className}</h3>
-                <table id="monthlyReportTable">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-            `;
-            
-            // Add Date Headers
-            sortedDates.forEach(day => { 
-                tableHTML += `<th>${day}</th>`; 
+                // Add cell with tooltip for comment
+                rowHTML += `<td class="${cellClass}" title="${record && record.comment ? record.comment : ''}">${statusChar}</td>`;
             });
             
-            tableHTML += '<th>Total P</th><th>Total A</th><th>% Att</th></tr></thead><tbody>';
+            const totalDays = totalPresent + totalAbsent;
+            const percentage = totalDays > 0 ? ((totalPresent / totalDays) * 100).toFixed(2) : 0;
 
-            // Calculate total days recorded in the month for this class
-            const totalDaysRecorded = sortedDates.length; 
+            rowHTML += `
+                <td>${totalPresent}</td>
+                <td>${totalAbsent}</td>
+                <td>${percentage}%</td>
+            </tr>`;
             
-            let csvData = [];
+            tableHTML += rowHTML;
             
-            // Process Students
-            Object.values(studentMap).sort((a, b) => a.id - b.id).forEach(student => {
-                let rowHTML = `<tr><td>${student.id}</td><td>${student.name}</td>`;
-                let csvRow = [student.id, student.name];
-                
-                // Add Status per Day
-                sortedDates.forEach(day => {
-                    const record = student.records[String(day).padStart(2, '0')];
-                    let status = record ? (record.status === 'Present' ? 'P' : 'A') : '-';
-                    rowHTML += `<td>${status}</td>`;
-                    csvRow.push(status);
-                });
-                
-                // Calculate Attendance Percentage
-                const totalAttendance = student.totalP + student.totalA; 
-                const percentage = totalAttendance > 0 
-                    ? ((student.totalP / totalAttendance) * 100).toFixed(1) 
-                    : "0.0";
-                
-                rowHTML += `<td>${student.totalP}</td><td>${student.totalA}</td><td>${percentage}%</td></tr>`;
-                csvRow.push(student.totalP, student.totalA, `${percentage}%`);
-                
-                tableHTML += rowHTML;
-                csvData.push(csvRow);
-            });
+            studentDataForExport.push(totalPresent, totalAbsent, `${percentage}%`);
+            reportDataForExport.push(studentDataForExport);
+        });
 
-            tableHTML += '</tbody></table>';
-
-            // Append HTML table to the container
-            const classDiv = document.createElement('div');
-            classDiv.innerHTML = tableHTML;
-            monthlyReportTableContainer.appendChild(classDiv);
-            
-            // Store data for export
-            allClassData.push({ 
-                className: className, 
-                dates: sortedDates, 
-                data: csvData 
-            });
-        }
+        tableHTML += '</tbody></table></div>';
+        tableContainer.innerHTML = tableHTML;
         
-        monthlyReportData = allClassData;
-        outputDiv.innerHTML = ''; // Clear loading message
-        outputDiv.classList.remove("hidden");
+        // Store the CSV data structure for export
+        monthlyReportData = reportDataForExport;
 
     } catch (error) {
-        console.error("Error generating report:", error);
-        outputDiv.innerHTML = `<p style="color: #e74c3c;">Failed to generate report. An error occurred.</p>`;
+        console.error("Error generating monthly report:", error);
+        tableContainer.innerHTML = `<h3>Error</h3><p>An error occurred while generating the report. Check the console.</p>`;
+        monthlyReportData = null;
     }
-};
-
+}
 
 /**
- * Exports the generated monthly report to a CSV file.
+ * Exports the currently generated monthly report to a CSV file.
  */
 window.exportMonthlyReportToCSV = function() {
-    if (!monthlyReportData || monthlyReportData.length === 0) {
-        return alert("Please generate a monthly report first.");
+    if (!monthlyReportData) {
+        return alert("Please generate a report first.");
     }
+    
+    // Convert the array of arrays into a CSV string
+    const csvContent = monthlyReportData.map(e => e.join(",")).join("\n");
     
     const monthSelect = document.getElementById("reportMonthSelect");
     const yearSelect = document.getElementById("reportYearSelect");
-    const monthName = monthSelect.options[monthSelect.selectedIndex].text;
-    const year = yearSelect.value;
+    const selectedMonthName = monthSelect.options[monthSelect.selectedIndex].text;
+    const selectedYear = yearSelect.value;
+    const selectedClass = currentClass;
 
-    let csvContent = "";
+    const filename = `${selectedClass}_Attendance_Report_${selectedMonthName}_${selectedYear}.csv`;
     
-    monthlyReportData.forEach(classData => {
-        // Add Class Name Header
-        csvContent += `\n\nClass: ${classData.className} Attendance Report for ${monthName}, ${year}\n`;
-        
-        // Create CSV Headers
-        let headers = ["ID", "Name"];
-        classData.dates.forEach(day => headers.push(day));
-        headers.push("Total P", "Total A", "% Att");
-        csvContent += headers.join(',') + "\n";
-        
-        // Add Data Rows
-        classData.data.forEach(row => {
-            // Join array elements to form the CSV row
-            csvContent += row.join(',') + "\n"; 
-        });
-    });
-
-    const filename = `Attendance_Report_${monthName}_${year}.csv`;
+    // Create a blob and trigger a download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     
-    // Download the file
     if (navigator.msSaveBlob) { // IE 10+
         navigator.msSaveBlob(blob, filename);
     } else {
         const link = document.createElement("a");
-        if (link.download !== undefined) {
+        if (link.download !== undefined) { 
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
             link.setAttribute("download", filename);
@@ -673,7 +701,7 @@ window.exportMonthlyReportToCSV = function() {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            alert("Report downloaded successfully!");
+            alert("Report exported successfully!");
         } else {
             alert("Your browser does not support automatic downloads. Please save the content manually.");
         }
