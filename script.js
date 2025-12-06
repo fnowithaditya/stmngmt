@@ -15,7 +15,7 @@ import {
     signInWithEmailAndPassword,
     signOut,
     onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"; // IMPORTING AUTH MODULES
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"; 
 
 let attendanceData = {};
 let students = [];
@@ -55,7 +55,7 @@ function getNumericDateParts(dateString) {
 // --- UTILITY/UI FUNCTIONS ---
 
 /**
- * Manages which main view is visible: Login, Attendance, History, or Report.
+ * Manages which main view is visible: Attendance, History, or Report.
  */
 function manageViews(activeView) {
     const views = {
@@ -123,8 +123,9 @@ function updateUI(role) {
           })
           .catch(err => console.error("Error loading student data:", err));
     } else {
-        // User is logged out
-        if (loginScreen) loginScreen.classList.add("hidden");
+        // 🛑 CORRECTION APPLIED HERE: User is logged out (role is null)
+        // Show the login screen and hide the app screen
+        if (loginScreen) loginScreen.classList.remove("hidden");
         if (appScreen) appScreen.classList.add("hidden");
         manageViews(null); // Clear all views
     }
@@ -232,7 +233,7 @@ function populateClassDropdown() {
     "First", "Second", "Third", "Fourth"
   ];
 
-  select.innerHTML = '<option value="" selected disabled>-- Select Class --</option>';
+  select.innerHTML = '<option value="" selected disabled>-- 𝑠𝑒𝑙𝑒𝑐𝑡 𝑐𝑙𝑎𝑠𝑠 --</option>';
 
   classOrder.forEach(className => {
     const option = document.createElement('option');
@@ -436,7 +437,6 @@ async function loadStudentData(id) {
 
 /**
  * Shows the report view, ensuring a class is selected first.
- * MODIFIED to remove dependency on loadClassStudents() being called first.
  */
 window.showReportView = function() {
     if (!currentUserRole) return alert("Please log in to view reports.");
@@ -465,8 +465,8 @@ function populateReportMonthYear() {
     if (!monthSelect || !yearSelect) return;
 
     // Clear previous options
-    monthSelect.innerHTML = '<option value="" selected disabled>-- Select Month --</option>';
-    yearSelect.innerHTML = '<option value="" selected disabled>-- Select Year --</option>';
+    monthSelect.innerHTML = '<option value="" selected disabled>-- 𝑠𝑒𝑙𝑒𝑐𝑡 𝑚𝑜𝑛𝑡ℎ --</option>';
+    yearSelect.innerHTML = '<option value="" selected disabled>-- 𝑠𝑒𝑙𝑒𝑐𝑡 𝑦𝑒𝑎𝑟 --</option>';
     
     const months = [
         { name: "January", val: "1" }, { name: "February", val: "2" }, 
