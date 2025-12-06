@@ -123,7 +123,7 @@ function updateUI(role) {
           })
           .catch(err => console.error("Error loading student data:", err));
     } else {
-        // 🛑 CORRECTION APPLIED HERE: User is logged out (role is null)
+        // User is logged out (role is null)
         // Show the login screen and hide the app screen
         if (loginScreen) loginScreen.classList.remove("hidden");
         if (appScreen) appScreen.classList.add("hidden");
@@ -233,7 +233,7 @@ function populateClassDropdown() {
     "First", "Second", "Third", "Fourth"
   ];
 
-  select.innerHTML = '<option value="" selected disabled>-- 𝑠𝑒𝑙𝑒𝑐𝑡 𝑐𝑙𝑎𝑠𝑠 --</option>';
+  select.innerHTML = '<option value="" selected disabled>-- Select Class --</option>';
 
   classOrder.forEach(className => {
     const option = document.createElement('option');
@@ -281,6 +281,11 @@ window.loadClassStudents = function () {
       date: todayStandard // Save date in standard format
     };
     
+    // Determine if the comment field should be disabled on load.
+    // Since default status is "Present" and we want comments for Present,
+    // the field should be ENABLED by default.
+    const commentDisabled = false; 
+
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${studentId}</td>
@@ -292,7 +297,7 @@ window.loadClassStudents = function () {
         <label for="absent-${studentId}">Absent</label>
       </td>
       <td>
-        <input type="text" id="comment-${studentId}" placeholder="Comment" oninput="updateComment(${studentId})" disabled>
+        <input type="text" id="comment-${studentId}" placeholder="Comment" oninput="updateComment(${studentId})" ${commentDisabled ? 'disabled' : ''}>
       </td>
     `;
     tbody.appendChild(row);
@@ -311,11 +316,11 @@ window.updateStatus = function (id, status) {
   
   attendanceData[id].status = status;
   
-  if (status === "Absent") {
-    // Only enable comment for Absent
+  if (status === "Present") {
+    // 🟢 CORRECTION: Only enable comment for Present
     commentInput.disabled = false;
   } else {
-    // Disable and clear comment for Present
+    // Disable and clear comment for Absent
     commentInput.value = "";
     commentInput.disabled = true;
     attendanceData[id].comment = "";
@@ -323,8 +328,8 @@ window.updateStatus = function (id, status) {
 };
 
 window.updateComment = function (id) {
-  // Only update comment if the student is marked as Absent
-  if (attendanceData[id].status === "Absent") {
+  // 🟢 CORRECTION: Only update comment if the student is marked as Present
+  if (attendanceData[id].status === "Present") {
     attendanceData[id].comment = document.getElementById(`comment-${id}`).value;
   }
 };
@@ -465,8 +470,8 @@ function populateReportMonthYear() {
     if (!monthSelect || !yearSelect) return;
 
     // Clear previous options
-    monthSelect.innerHTML = '<option value="" selected disabled>-- 𝑠𝑒𝑙𝑒𝑐𝑡 𝑚𝑜𝑛𝑡ℎ --</option>';
-    yearSelect.innerHTML = '<option value="" selected disabled>-- 𝑠𝑒𝑙𝑒𝑐𝑡 𝑦𝑒𝑎𝑟 --</option>';
+    monthSelect.innerHTML = '<option value="" selected disabled>-- Select Month --</option>';
+    yearSelect.innerHTML = '<option value="" selected disabled>-- Select Year --</option>';
     
     const months = [
         { name: "January", val: "1" }, { name: "February", val: "2" }, 
